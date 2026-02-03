@@ -1,0 +1,5 @@
+{
+  "name": "Dashboard de Canales Digitales",
+  "description": "Un dashboard interactivo para analizar el rendimiento de campañas de marketing digital (Email, HSM, SMS) a través de la carga de un archivo Excel. Visualiza KPIs, compara resultados con el mes anterior y filtra datos dinámicamente.",
+  "requestFramePermissions": []
+}
