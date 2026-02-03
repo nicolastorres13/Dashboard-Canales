@@ -1,6 +1,10 @@
 
 
 
+
+
+
+
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, LabelList, LineChart, Line, ComposedChart, PieChart, Pie, Cell } from 'recharts';
@@ -920,8 +924,9 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
 
             return { name: segmentName, metrics: monthlyMetrics };
         }).sort((a,b) => {
-            const totalA = Object.values(a.metrics).reduce((sum, m: any) => sum + m.delivered, 0);
-            const totalB = Object.values(b.metrics).reduce((sum, m: any) => sum + m.delivered, 0);
+            // FIX: Ensure totalA and totalB are numbers by explicitly typing the reduce accumulator, resolving arithmetic errors.
+            const totalA = Object.values(a.metrics).reduce((sum: number, m: any) => sum + (m.delivered || 0), 0);
+            const totalB = Object.values(b.metrics).reduce((sum: number, m: any) => sum + (m.delivered || 0), 0);
             return totalB - totalA;
         });
         
@@ -1589,41 +1594,6 @@ const App = () => {
         }));
     }, [data, filters]);
 
-    const downloadCSV = useCallback(() => {
-        if (filteredData.length === 0) {
-            alert("No hay datos para descargar.");
-            return;
-        }
-        
-        const headerLabels = Object.keys(COLUMN_MAPPING);
-        const dataKeys = headerLabels.map(label => COLUMN_MAPPING[label]);
-
-        const csvRows = [headerLabels.join(',')];
-
-        for (const row of filteredData) {
-            const values = dataKeys.map(key => {
-                const cellValue = row[key] === null || row[key] === undefined ? '' : row[key];
-                const escaped = String(cellValue).replace(/"/g, '""');
-                return `"${escaped}"`;
-            });
-            csvRows.push(values.join(','));
-        }
-        
-        const bom = '\uFEFF';
-        const csvString = csvRows.join('\n');
-        const blob = new Blob([bom + csvString], { type: 'text/csv;charset=utf-8;' });
-        
-        const link = document.createElement('a');
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'dashboard_data.csv');
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        URL.revokeObjectURL(url);
-    }, [filteredData]);
-
     const parseNumericValue = (value: any) => {
       if (typeof value === 'number') return value || 0;
       if (typeof value !== 'string' || value.trim() === '') return 0;
@@ -2065,16 +2035,6 @@ const App = () => {
                     <p className="text-slate-600 mt-1">Análisis de rendimiento de campañas.</p>
                 </div>
                 <div className="flex items-center gap-2">
-                     <button
-                        onClick={downloadCSV}
-                        title="Descargar datos como CSV"
-                        className="bg-white text-slate-700 font-semibold py-2.5 px-4 rounded-lg shadow-sm hover:bg-slate-50 border border-slate-200 transition-colors flex items-center gap-2 disabled:bg-slate-100 disabled:text-slate-400 disabled:cursor-not-allowed"
-                        disabled={loading || filteredData.length === 0}
-                    >
-                        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                        </svg>
-                    </button>
                     <button
                         onClick={toggleFullscreen}
                         title={isFullscreen ? "Salir de pantalla completa" : "Ver en pantalla completa"}
