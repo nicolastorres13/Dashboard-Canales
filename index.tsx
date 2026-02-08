@@ -1,16 +1,10 @@
-
-
-
-
-
-
-
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import ReactDOM from 'react-dom/client';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, AreaChart, Area, LabelList, LineChart, Line, ComposedChart, PieChart, Pie, Cell } from 'recharts';
 
 // --- Inlined: types.ts ---
 const FILTERABLE_FIELDS = [
+    { key: 'year', label: 'Año' },
     { key: 'month', label: 'Mes' },
     { key: 'campaignName', label: 'Nombre de Campaña' },
     { key: 'sentChannel', label: 'Canal de Envío' },
@@ -25,11 +19,13 @@ const FILTERABLE_FIELDS = [
 ];
 
 const MONTH_ORDER: Record<string, number> = {
-    'Enero': 1, 'Febrero': 2, 'Marzo': 3, 'Abril': 4, 'Mayo': 5, 'Junio': 6,
-    'Julio': 7, 'Agosto': 8, 'Septiembre': 9, 'Octubre': 10, 'Noviembre': 11, 'Diciembre': 12
+    'Diciembre': 1, 'Enero': 2, 'Febrero': 3, 'Marzo': 4, 'Abril': 5, 'Mayo': 6, 'Junio': 7,
+    'Julio': 8, 'Agosto': 9, 'Septiembre': 10, 'Octubre': 11, 'Noviembre': 12
 };
 
 const COLUMN_MAPPING: Record<string, string> = {
+    'año': 'year',
+    'year': 'year',
     'nombre de campaña': 'campaignName',
     'envio': 'sent',
     'envío': 'sent',
@@ -580,7 +576,7 @@ const ErrorAnalysisSheet = ({ data }: any) => {
         const baseMetrics = Object.values(grouping)
             .map((e: any) => ({
                 ...e,
-                errorRate: e.delivered > 0 ? (e.errors / e.delivered) * 100 : 0,
+                errorRate: e.delivered > 0 ? (Number(e.errors) / Number(e.delivered)) * 100 : 0,
             }));
 
 // FIX: Improve type safety for sortConfig key to prevent indexing errors.
@@ -595,8 +591,8 @@ const ErrorAnalysisSheet = ({ data }: any) => {
         });
 
         const totals = baseMetrics.reduce((acc, curr) => ({
-            delivered: acc.delivered + curr.delivered,
-            errors: acc.errors + curr.errors,
+            delivered: acc.delivered + (Number(curr.delivered) || 0),
+            errors: acc.errors + (Number(curr.errors) || 0),
         }), { delivered: 0, errors: 0 });
 
         const globalErrorRate = totals.delivered > 0 ? (totals.errors / totals.delivered) * 100 : 0;
@@ -606,7 +602,7 @@ const ErrorAnalysisSheet = ({ data }: any) => {
         const typeGrouped = filteredData.reduce((acc: Record<string, number>, curr: any) => {
             const type = curr.errorType || 'No especificado';
             if (curr.errorCount > 0) {
-                acc[type] = (acc[type] || 0) + curr.errorCount;
+                acc[type] = (acc[type] ?? 0) + (Number(curr.errorCount) || 0);
             }
             return acc;
         }, {} as Record<string, number>);
@@ -828,7 +824,7 @@ const MonthlyMetricsChart = ({ data, visibleMetrics, onToggleMetric }: any) => {
                                     key={metric}
                                     onClick={() => onToggleMetric(metric)}
                                     className={`px-3 py-1.5 text-[11px] font-bold rounded-lg transition-all border ${
-                                        visibleMetrics[metric]
+                                        (visibleMetrics as any)[metric]
                                             ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
                                             : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'
                                     }`}
@@ -877,7 +873,7 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
     const analysis = useMemo(() => {
         // FIX: Explicitly type mapped values and sort arguments to prevent indexing errors.
         const allMonths = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean)))
-            .sort((a: string, b: string) => (MONTH_ORDER[a] || 0) - (MONTH_ORDER[b] || 0));
+            .sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 0) - ((MONTH_ORDER[b] as number) || 0));
 
         if (allMonths.length < 1) return { segments: [], months: [] };
 
@@ -1023,7 +1019,7 @@ const ExecutiveReportSheet = ({ data }: any) => {
             };
         }
 
-        const months = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean))).sort((a: string, b: string) => (MONTH_ORDER[a] || 0) - (MONTH_ORDER[b] || 0));
+        const months = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean))).sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 0) - ((MONTH_ORDER[b] as number) || 0));
         
         if (months.length === 0) {
              return {
@@ -1347,7 +1343,7 @@ const BusinessSegmentAnalysis = ({ data }: any) => {
 
         // FIX: Explicitly type mapped values and sort arguments to prevent indexing errors.
         const availableMonths = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean)))
-            .sort((a: string, b: string) => (MONTH_ORDER[a] || 99) - (MONTH_ORDER[b] || 99));
+            .sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 99) - ((MONTH_ORDER[b] as number) || 99));
 
         if (availableMonths.length === 0) {
             return { results: [], currentMonth: 'N/A', prevMonth: null };
@@ -1781,7 +1777,7 @@ const App = () => {
         const sortedValues: Record<string, string[]> = {};
         FILTERABLE_FIELDS.forEach(field => {
             const arr = Array.from(values[field.key]);
-            if (field.key === 'month') arr.sort((a, b) => (MONTH_ORDER[a] || 99) - (MONTH_ORDER[b] || 99));
+            if (field.key === 'month') arr.sort((a, b) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
             else arr.sort();
             sortedValues[field.key] = arr;
         });
@@ -1790,7 +1786,7 @@ const App = () => {
     
     const activeMonthsFiltered = useMemo(() => {
         // FIX: Explicitly cast month to string and type sort arguments to fix indexing error.
-        return Array.from(new Set(filteredData.map((d: any) => d.month as string))).sort((a: string, b: string) => (MONTH_ORDER[a] || 99) - (MONTH_ORDER[b] || 99));
+        return Array.from(new Set(filteredData.map((d: any) => d.month as string))).sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 99) - ((MONTH_ORDER[b] as number) || 99));
     }, [filteredData]);
     
     const kpiData = useMemo(() => {
@@ -1853,7 +1849,7 @@ const App = () => {
             acc[month].clicked += row.clicked;
             return acc;
         }, {} as Record<string, { month: string, sent: number, delivered: number, opened: number, clicked: number }>);
-        return Object.values(monthlyData).sort((a: any, b: any) => (MONTH_ORDER[a.month] || 99) - (MONTH_ORDER[b.month] || 99));
+        return Object.values(monthlyData).sort((a: any, b: any) => ((MONTH_ORDER[String(a.month)] as number) || 99) - ((MONTH_ORDER[String(b.month)] as number) || 99));
     }, [filteredData]);
 
     const chartDataWithRates = useMemo(() => {
@@ -1883,7 +1879,7 @@ const App = () => {
             dataByMonthChannel[month][channel].clicked += row.clicked || 0;
         });
         
-        const monthKeys = Object.keys(dataByMonthChannel).sort((a, b) => (MONTH_ORDER[a] || 99) - (MONTH_ORDER[b] || 99));
+        const monthKeys = Object.keys(dataByMonthChannel).sort((a, b) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
 
         const chartData = monthKeys.map(month => {
             const monthEntry: any = { month };
