@@ -50,6 +50,7 @@ const COLUMN_MAPPING: Record<string, string> = {
 
 // --- Inlined: components/DownloadWrapper.tsx ---
 // FIX: Added explicit types for props, making children optional to resolve widespread but likely erroneous "missing children" errors.
+// UPDATE: Optimized for High Resolution (4K) exports for Figma/PPT
 const DownloadWrapper = ({ children, filename }: { children?: React.ReactNode, filename: string }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -62,10 +63,35 @@ const DownloadWrapper = ({ children, filename }: { children?: React.ReactNode, f
             const buttonToHide = elementToCapture.querySelector('.download-button-unique-class') as HTMLElement;
             if (buttonToHide) buttonToHide.style.visibility = 'hidden';
 
+            // Calcular escala dinámica para asegurar alta resolución (target: ~3840px de ancho o más)
+            const actualWidth = elementToCapture.offsetWidth;
+            const actualHeight = elementToCapture.offsetHeight;
+            const targetWidth = 3840; // 4K resolution target
+            // Usamos un mínimo de escala 3, o lo necesario para llegar a 4K
+            const scale = Math.max(3, targetWidth / actualWidth);
+
             const canvas = await (window as any).html2canvas(elementToCapture, {
-                scale: 4,
+                scale: scale,
                 useCORS: true,
-                backgroundColor: '#ffffff', // Explicitly set a white background for consistency
+                allowTaint: true,
+                backgroundColor: '#ffffff', // Fondo blanco sólido para mejor contraste en PPT/Figma
+                logging: false,
+                width: actualWidth,
+                height: actualHeight,
+                windowWidth: actualWidth,
+                windowHeight: actualHeight,
+                onclone: (clonedDoc: Document) => {
+                    // Forzar suavizado de fuentes en el clon para textos nítidos a alta resolución
+                    const style = clonedDoc.createElement('style');
+                    style.innerHTML = `
+                        * { 
+                            -webkit-font-smoothing: antialiased !important; 
+                            -moz-osx-font-smoothing: grayscale !important; 
+                            text-rendering: optimizeLegibility !important;
+                        }
+                    `;
+                    clonedDoc.head.appendChild(style);
+                }
             });
             
             if (buttonToHide) buttonToHide.style.visibility = 'visible';
@@ -73,7 +99,7 @@ const DownloadWrapper = ({ children, filename }: { children?: React.ReactNode, f
             const image = canvas.toDataURL('image/png', 1.0);
             const link = document.createElement('a');
             link.href = image;
-            link.download = `${filename || 'componente-dashboard'}.png`;
+            link.download = `${filename || 'dashboard-chart'}.png`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -94,8 +120,8 @@ const DownloadWrapper = ({ children, filename }: { children?: React.ReactNode, f
              <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                title="Descargar como imagen 4K"
-                className="download-button-unique-class absolute top-4 right-4 z-20 p-2 rounded-full bg-slate-100 text-slate-500 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all hover:bg-slate-200 hover:text-slate-800 hover:scale-110 disabled:opacity-50 disabled:cursor-wait"
+                title="Descargar PNG Alta Resolución (Figma/PPT)"
+                className="download-button-unique-class absolute top-4 right-4 z-20 p-2 rounded-full bg-slate-100 text-slate-500 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all hover:bg-indigo-600 hover:text-white hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-wait"
             >
                 {isDownloading ? (
                     <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -847,16 +873,16 @@ const MonthlyMetricsChart = ({ data, visibleMetrics, onToggleMetric }: any) => {
                                 />
                                 <Legend iconType="circle" />
                                 {visibleMetrics['Envíos'] && <Bar yAxisId="left" dataKey="Envíos" fill="#a5b4fc" radius={[4, 4, 0, 0]} barSize={20}>
-                                    <LabelList dataKey="Envíos" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={x + width / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
+                                    <LabelList dataKey="Envíos" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
                                 </Bar>}
                                 {visibleMetrics['Entregados'] && <Bar yAxisId="left" dataKey="Entregados" fill="#7dd3fc" radius={[4, 4, 0, 0]} barSize={20}>
-                                    <LabelList dataKey="Entregados" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={x + width / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
+                                    <LabelList dataKey="Entregados" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
                                 </Bar>}
                                 {visibleMetrics['Aperturas'] && <Bar yAxisId="left" dataKey="Aperturas" fill="#6ee7b7" radius={[4, 4, 0, 0]} barSize={20}>
-                                     <LabelList dataKey="Aperturas" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={x + width / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
+                                     <LabelList dataKey="Aperturas" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
                                 </Bar>}
                                 {visibleMetrics['Clics'] && <Bar yAxisId="left" dataKey="Clics" fill="#fde047" radius={[4, 4, 0, 0]} barSize={20}>
-                                     <LabelList dataKey="Clics" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={x + width / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
+                                     <LabelList dataKey="Clics" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
                                 </Bar>}
                                 {visibleMetrics['CTO (%)'] && <Line yAxisId="right" type="monotone" dataKey="CTO (%)" stroke="#f472b6" strokeWidth={3} dot={{ r: 4 }} />}
                             </ComposedChart>
@@ -873,7 +899,7 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
     const analysis = useMemo(() => {
         // FIX: Explicitly type mapped values and sort arguments to prevent indexing errors.
         const allMonths = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean)))
-            .sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 0) - ((MONTH_ORDER[b] as number) || 0));
+            .sort((a: any, b: any) => (Number(MONTH_ORDER[String(a)]) || 0) - (Number(MONTH_ORDER[String(b)]) || 0));
 
         if (allMonths.length < 1) return { segments: [], months: [] };
 
@@ -946,13 +972,20 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
         return `${value.toFixed(1)}%`;
     };
 
+    // Semaphore indicator logic for Open Rate
+    const getSemaphoreColor = (value: number) => {
+        if (value >= 38) return 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]';
+        if (value >= 29) return 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]';
+        return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]';
+    };
+
     return (
         <DownloadWrapper filename="analisis_segmentos_por_mes">
             <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 mt-6">
                 <div className="mb-6">
                     <h3 className="text-xl font-black text-slate-800 tracking-tight">Análisis de Segmentos por Mes</h3>
                     <p className="text-sm text-slate-500 font-medium">
-                        Desglose mensual de métricas clave por Nivel y Modalidad.
+                        Desglose mensual de métricas clave por Nivel y Modalidad. <span className="text-xs ml-2 bg-slate-100 px-2 py-1 rounded text-slate-400 font-normal">● Indicador de Apertura</span>
                     </p>
                 </div>
                 <div className="overflow-x-auto">
@@ -980,11 +1013,19 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
                                                 </td>
                                             )}
                                             <td className="px-4 py-3 font-semibold text-slate-500">{metric.label}</td>
-                                            {analysis.months.map(month => (
-                                                <td key={`${segment.name}-${metric.key}-${month}`} className="px-4 py-3 text-center font-bold text-slate-800">
-                                                    {formatValue(segment.metrics[month]?.[metric.key] ?? 0, metric.key)}
-                                                </td>
-                                            ))}
+                                            {analysis.months.map(month => {
+                                                const value = segment.metrics[month]?.[metric.key] ?? 0;
+                                                return (
+                                                    <td key={`${segment.name}-${metric.key}-${month}`} className="px-4 py-3 text-center font-bold text-slate-800">
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            {metric.key === 'openRate' && value > 0 && (
+                                                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getSemaphoreColor(value)}`} title={`Tasa de Apertura: ${value.toFixed(1)}%`}></div>
+                                                            )}
+                                                            {formatValue(value, metric.key)}
+                                                        </div>
+                                                    </td>
+                                                );
+                                            })}
                                         </tr>
                                     ))}
                                 </React.Fragment>
@@ -1019,7 +1060,7 @@ const ExecutiveReportSheet = ({ data }: any) => {
             };
         }
 
-        const months = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean))).sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 0) - ((MONTH_ORDER[b] as number) || 0));
+        const months = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean))).sort((a: any, b: any) => (Number(MONTH_ORDER[String(a)]) || 0) - (Number(MONTH_ORDER[String(b)]) || 0));
         
         if (months.length === 0) {
              return {
@@ -1343,7 +1384,7 @@ const BusinessSegmentAnalysis = ({ data }: any) => {
 
         // FIX: Explicitly type mapped values and sort arguments to prevent indexing errors.
         const availableMonths = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean)))
-            .sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 99) - ((MONTH_ORDER[b] as number) || 99));
+            .sort((a: any, b: any) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
 
         if (availableMonths.length === 0) {
             return { results: [], currentMonth: 'N/A', prevMonth: null };
@@ -1353,7 +1394,7 @@ const BusinessSegmentAnalysis = ({ data }: any) => {
         const prevMonth = availableMonths[availableMonths.length - 2];
 
 // FIX: Type `row` as `Record<string, any>` to prevent indexing errors.
-        const getGroupKey = (row: Record<string, any>) => {
+        const getGroupKey = (row: Record<string, any>): string => {
             if (activeSegment === 'level_modality') {
                 return `${row.level || 'N/A'} - ${row.modality || 'N/A'}`;
             }
@@ -1363,7 +1404,7 @@ const BusinessSegmentAnalysis = ({ data }: any) => {
             const groups: any = {};
 // FIX: Type `row` as `Record<string, any>` to prevent indexing errors.
             dataset.forEach((row: Record<string, any>) => {
-                const key = getGroupKey(row);
+                const key: string = getGroupKey(row);
                 if (!groups[key]) groups[key] = { sent: 0, delivered: 0, opened: 0, clicked: 0 };
                 groups[key].sent += (row.sent || 0);
                 groups[key].delivered += (row.delivered || 0);
@@ -1376,7 +1417,7 @@ const BusinessSegmentAnalysis = ({ data }: any) => {
         const prevGroups = prevMonth ? processData(data.filter((d: any) => d.month === prevMonth)) : {};
         const allKeys = Array.from(new Set([...Object.keys(currentGroups), ...Object.keys(prevGroups)]));
         const calculateRate = (num: number, den: number) => den > 0 ? (num / den) * 100 : 0;
-        const results = allKeys.map(key => {
+        const results = allKeys.map((key: string) => {
             const curr = currentGroups[key] || { sent: 0, delivered: 0, opened: 0, clicked: 0 };
             const prev = prevGroups[key] || { sent: 0, delivered: 0, opened: 0, clicked: 0 };
             const currMetrics = {
@@ -1777,7 +1818,7 @@ const App = () => {
         const sortedValues: Record<string, string[]> = {};
         FILTERABLE_FIELDS.forEach(field => {
             const arr = Array.from(values[field.key]);
-            if (field.key === 'month') arr.sort((a, b) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
+            if (field.key === 'month') arr.sort((a: any, b: any) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
             else arr.sort();
             sortedValues[field.key] = arr;
         });
@@ -1786,7 +1827,7 @@ const App = () => {
     
     const activeMonthsFiltered = useMemo(() => {
         // FIX: Explicitly cast month to string and type sort arguments to fix indexing error.
-        return Array.from(new Set(filteredData.map((d: any) => d.month as string))).sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 99) - ((MONTH_ORDER[b] as number) || 99));
+        return Array.from(new Set(filteredData.map((d: any) => d.month as string))).sort((a: any, b: any) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
     }, [filteredData]);
     
     const kpiData = useMemo(() => {
@@ -1879,7 +1920,7 @@ const App = () => {
             dataByMonthChannel[month][channel].clicked += row.clicked || 0;
         });
         
-        const monthKeys = Object.keys(dataByMonthChannel).sort((a, b) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
+        const monthKeys = Object.keys(dataByMonthChannel).sort((a: any, b: any) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
 
         const chartData = monthKeys.map(month => {
             const monthEntry: any = { month };
@@ -2183,10 +2224,7 @@ const App = () => {
                                                     <LabelList 
                                                         dataKey="delivered" 
                                                         position="top" 
-                                                        formatter={(value: number) => value > 0 ? value.toLocaleString() : ''}
-                                                        fill="#475569"
-                                                        fontSize={11}
-                                                        fontWeight="600"
+                                                        content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }}
                                                     />
                                                 </Bar>
                                             )}
@@ -2201,10 +2239,7 @@ const App = () => {
                                                     <LabelList 
                                                         dataKey="openRate" 
                                                         position="top" 
-                                                        formatter={(value: number) => value > 0 ? `${value.toFixed(1)}%` : ''}
-                                                        fill="#475569"
-                                                        fontSize={11}
-                                                        fontWeight="600"
+                                                        content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }}
                                                     />
                                                 </Bar>
                                             )}
@@ -2219,10 +2254,7 @@ const App = () => {
                                                     <LabelList 
                                                         dataKey="clickRate" 
                                                         position="top" 
-                                                        formatter={(value: number) => value > 0 ? `${value.toFixed(1)}%` : ''}
-                                                        fill="#475569"
-                                                        fontSize={11}
-                                                        fontWeight="600"
+                                                        content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }}
                                                     />
                                                 </Bar>
                                             )}
@@ -2292,7 +2324,7 @@ const App = () => {
 
                                                             return (
                                                                 <text 
-                                                                    x={x + width / 2} 
+                                                                    x={Number(x) + Number(width) / 2} 
                                                                     y={y - 10} 
                                                                     fill="#334155" 
                                                                     textAnchor="middle" 
