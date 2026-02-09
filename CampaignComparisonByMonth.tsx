@@ -23,6 +23,11 @@ interface CampaignComparisonProps {
   data: any[];
 }
 
+interface CampaignMetrics {
+  delivered: number;
+  opened: number;
+}
+
 const CampaignComparisonByMonth: React.FC<CampaignComparisonProps> = ({ data }) => {
   const analysis = useMemo(() => {
     if (!data || data.length === 0) return null;
@@ -37,10 +42,10 @@ const CampaignComparisonByMonth: React.FC<CampaignComparisonProps> = ({ data }) 
     const prevMonth = months.length > 1 ? months[months.length - 2] : null;
 
     // 2. Agrupar métricas por campaña y mes
-    const getCampaignMetrics = (month: string | null) => {
+    const getCampaignMetrics = (month: string | null): Record<string, CampaignMetrics> => {
       if (!month) return {};
       const filtered = data.filter((d: any) => d.month === month);
-      const grouped: Record<string, { delivered: number, opened: number }> = {};
+      const grouped: Record<string, CampaignMetrics> = {};
       
       filtered.forEach((d: any) => {
         const name = d.campaignName || 'Sin Nombre';
@@ -58,18 +63,18 @@ const CampaignComparisonByMonth: React.FC<CampaignComparisonProps> = ({ data }) 
     const topCampaigns = Object.keys(currentMetrics)
       .map(name => ({
         name,
-        delivered: currentMetrics[name].delivered
+        delivered: (currentMetrics as any)[name].delivered
       }))
       .sort((a, b) => b.delivered - a.delivered)
       .slice(0, 5);
 
     // 4. Construir datos para el gráfico
     const chartData = topCampaigns.map(c => {
-      const curr = currentMetrics[c.name];
-      const prev = prevMetrics && prevMetrics[c.name] ? prevMetrics[c.name] : { delivered: 0, opened: 0 };
+      const curr = (currentMetrics as any)[c.name];
+      const prev = prevMetrics && (prevMetrics as any)[c.name] ? (prevMetrics as any)[c.name] : { delivered: 0, opened: 0 };
 
-      const prevRate = prev.delivered > 0 ? (prev.opened / prev.delivered) * 100 : 0;
-      const currRate = curr.delivered > 0 ? (curr.opened / curr.delivered) * 100 : 0;
+      const prevRate = (prev as any).delivered > 0 ? ((prev as any).opened / (prev as any).delivered) * 100 : 0;
+      const currRate = (curr as any).delivered > 0 ? ((curr as any).opened / (curr as any).delivered) * 100 : 0;
 
       return {
         name: c.name,
@@ -78,8 +83,8 @@ const CampaignComparisonByMonth: React.FC<CampaignComparisonProps> = ({ data }) 
         [currentMonth]: parseFloat(currRate.toFixed(1)),
         _prevValue: prevRate,
         _currValue: currRate,
-        _prevVolume: prev.delivered,
-        _currVolume: curr.delivered
+        _prevVolume: (prev as any).delivered,
+        _currVolume: (curr as any).delivered
       };
     });
 
@@ -118,7 +123,7 @@ const CampaignComparisonByMonth: React.FC<CampaignComparisonProps> = ({ data }) 
                   <div className="w-2 h-2 rounded-full bg-slate-300"></div>
                   <span className="text-xs font-semibold text-slate-500">{prevMonth}</span>
                 </div>
-                <span className="text-sm font-bold text-slate-600">{prevVal.toFixed(1)}%</span>
+                <span className="text-sm font-bold text-slate-600">{(prevVal as number).toFixed(1)}%</span>
               </div>
             )}
             <div className="flex items-center justify-between">
@@ -126,14 +131,14 @@ const CampaignComparisonByMonth: React.FC<CampaignComparisonProps> = ({ data }) 
                 <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
                 <span className="text-xs font-semibold text-indigo-700">{currentMonth}</span>
               </div>
-              <span className="text-sm font-black text-indigo-600">{currVal.toFixed(1)}%</span>
+              <span className="text-sm font-black text-indigo-600">{(currVal as number).toFixed(1)}%</span>
             </div>
             
             {prevMonth && (
               <div className="pt-2 border-t border-slate-100 flex items-center justify-between">
                 <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Variación</span>
                 <span className={`text-xs font-black ${diff >= 0 ? 'text-emerald-500' : 'text-red-500'}`}>
-                  {diff > 0 ? '+' : ''}{diff.toFixed(1)} pp
+                  {diff > 0 ? '+' : ''}{(diff as number).toFixed(1)} pp
                 </span>
               </div>
             )}
@@ -151,7 +156,7 @@ const CampaignComparisonByMonth: React.FC<CampaignComparisonProps> = ({ data }) 
             <div>
                 <h3 className="text-xl font-black text-slate-800 tracking-tight">Evolución de Campañas Top 5</h3>
                 <p className="text-sm text-slate-500 font-medium mt-1">
-                  Comparativa de Tasa de Apertura: <span className="font-bold text-indigo-600">{currentMonth}</span> vs {prevMonth || 'Anterior'}.
+                  Comparativa de Tasa de Apertura: <span className="font-bold text-indigo-600">{currentMonth as any}</span> vs {prevMonth || 'Anterior'}.
                 </p>
             </div>
         </div>
@@ -192,23 +197,23 @@ const CampaignComparisonByMonth: React.FC<CampaignComparisonProps> = ({ data }) 
             
             {prevMonth && (
               <Bar 
-                dataKey={prevMonth} 
+                dataKey={prevMonth as string} 
                 fill="#cbd5e1" 
                 radius={[4, 4, 0, 0]} 
                 barSize={30} // Ancho de barra fijo para estética consistente
-                name={prevMonth}
+                name={prevMonth as string}
               />
             )}
             
             <Bar 
-              dataKey={currentMonth} 
+              dataKey={currentMonth as string} 
               fill="#4f46e5" 
               radius={[4, 4, 0, 0]} 
               barSize={30}
-              name={currentMonth}
+              name={currentMonth as string}
             >
                <LabelList 
-                  dataKey={currentMonth} 
+                  dataKey={currentMonth as string} 
                   position="top" 
                   formatter={(v: number) => `${v}%`}
                   style={{ fontSize: '10px', fontWeight: '800', fill: '#4f46e5' }}

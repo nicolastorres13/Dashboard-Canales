@@ -49,8 +49,6 @@ const COLUMN_MAPPING: Record<string, string> = {
 };
 
 // --- Inlined: components/DownloadWrapper.tsx ---
-// FIX: Added explicit types for props, making children optional to resolve widespread but likely erroneous "missing children" errors.
-// UPDATE: Optimized for High Resolution (4K) exports for Figma/PPT
 const DownloadWrapper = ({ children, filename }: { children?: React.ReactNode, filename: string }) => {
     const ref = useRef<HTMLDivElement>(null);
     const [isDownloading, setIsDownloading] = useState(false);
@@ -63,35 +61,10 @@ const DownloadWrapper = ({ children, filename }: { children?: React.ReactNode, f
             const buttonToHide = elementToCapture.querySelector('.download-button-unique-class') as HTMLElement;
             if (buttonToHide) buttonToHide.style.visibility = 'hidden';
 
-            // Calcular escala dinámica para asegurar alta resolución (target: ~3840px de ancho o más)
-            const actualWidth = elementToCapture.offsetWidth;
-            const actualHeight = elementToCapture.offsetHeight;
-            const targetWidth = 3840; // 4K resolution target
-            // Usamos un mínimo de escala 3, o lo necesario para llegar a 4K
-            const scale = Math.max(3, targetWidth / actualWidth);
-
             const canvas = await (window as any).html2canvas(elementToCapture, {
-                scale: scale,
+                scale: 4,
                 useCORS: true,
-                allowTaint: true,
-                backgroundColor: '#ffffff', // Fondo blanco sólido para mejor contraste en PPT/Figma
-                logging: false,
-                width: actualWidth,
-                height: actualHeight,
-                windowWidth: actualWidth,
-                windowHeight: actualHeight,
-                onclone: (clonedDoc: Document) => {
-                    // Forzar suavizado de fuentes en el clon para textos nítidos a alta resolución
-                    const style = clonedDoc.createElement('style');
-                    style.innerHTML = `
-                        * { 
-                            -webkit-font-smoothing: antialiased !important; 
-                            -moz-osx-font-smoothing: grayscale !important; 
-                            text-rendering: optimizeLegibility !important;
-                        }
-                    `;
-                    clonedDoc.head.appendChild(style);
-                }
+                backgroundColor: '#ffffff',
             });
             
             if (buttonToHide) buttonToHide.style.visibility = 'visible';
@@ -99,7 +72,7 @@ const DownloadWrapper = ({ children, filename }: { children?: React.ReactNode, f
             const image = canvas.toDataURL('image/png', 1.0);
             const link = document.createElement('a');
             link.href = image;
-            link.download = `${filename || 'dashboard-chart'}.png`;
+            link.download = `${filename || 'componente-dashboard'}.png`;
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
@@ -120,8 +93,8 @@ const DownloadWrapper = ({ children, filename }: { children?: React.ReactNode, f
              <button
                 onClick={handleDownload}
                 disabled={isDownloading}
-                title="Descargar PNG Alta Resolución (Figma/PPT)"
-                className="download-button-unique-class absolute top-4 right-4 z-20 p-2 rounded-full bg-slate-100 text-slate-500 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all hover:bg-indigo-600 hover:text-white hover:shadow-lg hover:scale-105 disabled:opacity-50 disabled:cursor-wait"
+                title="Descargar como imagen 4K"
+                className="download-button-unique-class absolute top-4 right-4 z-20 p-2 rounded-full bg-slate-100 text-slate-500 opacity-0 group-hover:opacity-100 focus:opacity-100 transition-all hover:bg-slate-200 hover:text-slate-800 hover:scale-110 disabled:opacity-50 disabled:cursor-wait"
             >
                 {isDownloading ? (
                     <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
@@ -190,7 +163,7 @@ const PerformanceLeaders = ({
                           <path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.852l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
                       <p className="text-sm font-semibold text-slate-600">No hay datos suficientes para mostrar</p>
-                      <p className="text-xs text-slate-500 mt-1">(Se requieren entregas &gt;= 100)</p>
+                      <p className="text-xs text-slate-500 mt-1">(Se requieren entregas >= 100)</p>
                   </div>
               )}
           </div>
@@ -556,7 +529,6 @@ const CampaignPerformanceSheet = ({ data }: any) => {
 // --- Inlined: components/ErrorAnalysisSheet.tsx ---
 const ErrorAnalysisSheet = ({ data }: any) => {
     const [errorTypeFilter, setErrorTypeFilter] = useState('all');
-// FIX: Improve type safety for sortConfig state to prevent indexing errors.
     const [sortConfig, setSortConfig] = useState<{ key: 'delivered' | 'errors' | 'errorRate', direction: string }>({ key: 'errors', direction: 'descending' });
 
     const uniqueErrorTypes = useMemo(() => {
@@ -573,7 +545,6 @@ const ErrorAnalysisSheet = ({ data }: any) => {
         return data.filter((d: any) => d.errorType === errorTypeFilter);
     }, [data, errorTypeFilter]);
 
-// FIX: Improve type safety for sortConfig state to prevent indexing errors.
     const requestSort = (key: string) => {
         let direction = 'ascending';
         if (sortConfig.key === key && sortConfig.direction === 'ascending') {
@@ -583,7 +554,6 @@ const ErrorAnalysisSheet = ({ data }: any) => {
     };
 
     const stats = useMemo(() => {
-        // FIX: Explicitly type the accumulator of the reduce function to avoid type errors on property access.
         const grouping = filteredData.reduce((acc, curr: any) => {
             const name = curr.emailName || 'Sin Nombre';
             const level = curr.level || 'N/A';
@@ -597,15 +567,12 @@ const ErrorAnalysisSheet = ({ data }: any) => {
             return acc;
         }, {} as Record<string, { name: string; level: string; modality: string; delivered: number; errors: number; }>);
 
-// FIX: Remove explicit 'any' to allow for better type inference on baseMetrics.
-// FIX: Add explicit `any` type to `e` to resolve spread operator error with unknown type.
         const baseMetrics = Object.values(grouping)
             .map((e: any) => ({
                 ...e,
                 errorRate: e.delivered > 0 ? (Number(e.errors) / Number(e.delivered)) * 100 : 0,
             }));
 
-// FIX: Improve type safety for sortConfig key to prevent indexing errors.
         const sortedItems = [...baseMetrics].sort((a, b) => {
             if (a[sortConfig.key] < b[sortConfig.key]) {
                 return sortConfig.direction === 'ascending' ? -1 : 1;
@@ -623,8 +590,6 @@ const ErrorAnalysisSheet = ({ data }: any) => {
 
         const globalErrorRate = totals.delivered > 0 ? (totals.errors / totals.delivered) * 100 : 0;
         
-// FIX: Type the accumulator to ensure `value` in the subsequent map is a number.
-// FIX: Add type assertion to the initial value of reduce to ensure type correctness.
         const typeGrouped = filteredData.reduce((acc: Record<string, number>, curr: any) => {
             const type = curr.errorType || 'No especificado';
             if (curr.errorCount > 0) {
@@ -633,7 +598,6 @@ const ErrorAnalysisSheet = ({ data }: any) => {
             return acc;
         }, {} as Record<string, number>);
 
-// FIX: With a typed accumulator for typeGrouped, the cast `as number` is no longer needed.
         const errorTypeData = Object.entries(typeGrouped)
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value);
@@ -873,16 +837,20 @@ const MonthlyMetricsChart = ({ data, visibleMetrics, onToggleMetric }: any) => {
                                 />
                                 <Legend iconType="circle" />
                                 {visibleMetrics['Envíos'] && <Bar yAxisId="left" dataKey="Envíos" fill="#a5b4fc" radius={[4, 4, 0, 0]} barSize={20}>
-                                    <LabelList dataKey="Envíos" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
+                                    {/* Fix: added type casting for value to prevent 'unknown' error in arithmetic operation */}
+                                    <LabelList dataKey="Envíos" content={(props: any) => { const { x, y, width, value } = props; if ((value as any) <= 0) return null; const fv = (value as number) >= 1000 ? `${((value as number) / 1000).toFixed(1)}k` : (value as number).toLocaleString(); return <text x={x + width / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
                                 </Bar>}
                                 {visibleMetrics['Entregados'] && <Bar yAxisId="left" dataKey="Entregados" fill="#7dd3fc" radius={[4, 4, 0, 0]} barSize={20}>
-                                    <LabelList dataKey="Entregados" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
+                                    {/* Fix: added type casting for value to prevent 'unknown' error in arithmetic operation */}
+                                    <LabelList dataKey="Entregados" content={(props: any) => { const { x, y, width, value } = props; if ((value as any) <= 0) return null; const fv = (value as number) >= 1000 ? `${((value as number) / 1000).toFixed(1)}k` : (value as number).toLocaleString(); return <text x={x + width / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
                                 </Bar>}
                                 {visibleMetrics['Aperturas'] && <Bar yAxisId="left" dataKey="Aperturas" fill="#6ee7b7" radius={[4, 4, 0, 0]} barSize={20}>
-                                     <LabelList dataKey="Aperturas" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
+                                     {/* Fix: added type casting for value to prevent 'unknown' error in arithmetic operation */}
+                                     <LabelList dataKey="Aperturas" content={(props: any) => { const { x, y, width, value } = props; if ((value as any) <= 0) return null; const fv = (value as number) >= 1000 ? `${((value as number) / 1000).toFixed(1)}k` : (value as number).toLocaleString(); return <text x={x + width / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
                                 </Bar>}
                                 {visibleMetrics['Clics'] && <Bar yAxisId="left" dataKey="Clics" fill="#fde047" radius={[4, 4, 0, 0]} barSize={20}>
-                                     <LabelList dataKey="Clics" content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
+                                     {/* Fix: added type casting for value to prevent 'unknown' error in arithmetic operation */}
+                                     <LabelList dataKey="Clics" content={(props: any) => { const { x, y, width, value } = props; if ((value as any) <= 0) return null; const fv = (value as number) >= 1000 ? `${((value as number) / 1000).toFixed(1)}k` : (value as number).toLocaleString(); return <text x={x + width / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }} />
                                 </Bar>}
                                 {visibleMetrics['CTO (%)'] && <Line yAxisId="right" type="monotone" dataKey="CTO (%)" stroke="#f472b6" strokeWidth={3} dot={{ r: 4 }} />}
                             </ComposedChart>
@@ -897,9 +865,8 @@ const MonthlyMetricsChart = ({ data, visibleMetrics, onToggleMetric }: any) => {
 
 const MonthlySegmentBreakdown = ({ data }: any) => {
     const analysis = useMemo(() => {
-        // FIX: Explicitly type mapped values and sort arguments to prevent indexing errors.
         const allMonths = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean)))
-            .sort((a: any, b: any) => (Number(MONTH_ORDER[String(a)]) || 0) - (Number(MONTH_ORDER[String(b)]) || 0));
+            .sort((a: string, b: string) => (Number(MONTH_ORDER[a]) || 0) - (Number(MONTH_ORDER[b]) || 0)) as string[];
 
         if (allMonths.length < 1) return { segments: [], months: [] };
 
@@ -910,8 +877,7 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
             return `${level} / ${modality}`;
         };
 
-        // FIX: Explicitly type the accumulator to prevent type errors during property access.
-        const groupedData = data.reduce((acc, row: any) => {
+        const groupedData = data.reduce((acc: any, row: any) => {
             const key = getGroupKey(row);
             const month = row.month as string;
             if (!month) return acc;
@@ -931,7 +897,7 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
             const monthlyMetrics: Record<string, any> = {};
             
             allMonths.forEach(month => {
-                const monthData = groupedData[segmentName][month];
+                const monthData = (groupedData as any)[segmentName][month];
                 if (monthData) {
                     monthlyMetrics[month] = {
                         delivered: monthData.delivered,
@@ -946,7 +912,6 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
 
             return { name: segmentName, metrics: monthlyMetrics };
         }).sort((a,b) => {
-            // FIX: Ensure totalA and totalB are numbers by explicitly typing the reduce accumulator, resolving arithmetic errors.
             const totalA = Object.values(a.metrics).reduce((sum: number, m: any) => sum + (m.delivered || 0), 0);
             const totalB = Object.values(b.metrics).reduce((sum: number, m: any) => sum + (m.delivered || 0), 0);
             return totalB - totalA;
@@ -972,20 +937,13 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
         return `${value.toFixed(1)}%`;
     };
 
-    // Semaphore indicator logic for Open Rate
-    const getSemaphoreColor = (value: number) => {
-        if (value >= 38) return 'bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.4)]';
-        if (value >= 29) return 'bg-amber-400 shadow-[0_0_8px_rgba(251,191,36,0.4)]';
-        return 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.4)]';
-    };
-
     return (
         <DownloadWrapper filename="analisis_segmentos_por_mes">
             <section className="bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 mt-6">
                 <div className="mb-6">
                     <h3 className="text-xl font-black text-slate-800 tracking-tight">Análisis de Segmentos por Mes</h3>
                     <p className="text-sm text-slate-500 font-medium">
-                        Desglose mensual de métricas clave por Nivel y Modalidad. <span className="text-xs ml-2 bg-slate-100 px-2 py-1 rounded text-slate-400 font-normal">● Indicador de Apertura</span>
+                        Desglose mensual de métricas clave por Nivel y Modalidad.
                     </p>
                 </div>
                 <div className="overflow-x-auto">
@@ -995,7 +953,8 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
                                 <th className="px-6 py-4 sticky left-0 bg-slate-50 z-10">Segmento</th>
                                 <th className="px-4 py-4">Métrica</th>
                                 {analysis.months.map(month => (
-                                    <th key={month} className="px-4 py-4 text-center">{month}</th>
+                                    /* Fix: cast 'month' to any to avoid key rendering issues */
+                                    <th key={month as any} className="px-4 py-4 text-center">{month as any}</th>
                                 ))}
                             </tr>
                         </thead>
@@ -1013,19 +972,12 @@ const MonthlySegmentBreakdown = ({ data }: any) => {
                                                 </td>
                                             )}
                                             <td className="px-4 py-3 font-semibold text-slate-500">{metric.label}</td>
-                                            {analysis.months.map(month => {
-                                                const value = segment.metrics[month]?.[metric.key] ?? 0;
-                                                return (
-                                                    <td key={`${segment.name}-${metric.key}-${month}`} className="px-4 py-3 text-center font-bold text-slate-800">
-                                                        <div className="flex items-center justify-center gap-2">
-                                                            {metric.key === 'openRate' && value > 0 && (
-                                                                <div className={`w-2 h-2 rounded-full flex-shrink-0 ${getSemaphoreColor(value)}`} title={`Tasa de Apertura: ${value.toFixed(1)}%`}></div>
-                                                            )}
-                                                            {formatValue(value, metric.key)}
-                                                        </div>
-                                                    </td>
-                                                );
-                                            })}
+                                            {analysis.months.map(month => (
+                                                /* Fix: cast 'month' to any and metric indexing for rendering */
+                                                <td key={`${segment.name}-${metric.key}-${month}`} className="px-4 py-3 text-center font-bold text-slate-800">
+                                                    {formatValue((segment.metrics as any)[month as string]?.[metric.key] ?? 0, metric.key)}
+                                                </td>
+                                            ))}
                                         </tr>
                                     ))}
                                 </React.Fragment>
@@ -1060,7 +1012,7 @@ const ExecutiveReportSheet = ({ data }: any) => {
             };
         }
 
-        const months = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean))).sort((a: any, b: any) => (Number(MONTH_ORDER[String(a)]) || 0) - (Number(MONTH_ORDER[String(b)]) || 0));
+        const months = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean))).sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 0) - ((MONTH_ORDER[b] as number) || 0));
         
         if (months.length === 0) {
              return {
@@ -1091,7 +1043,6 @@ const ExecutiveReportSheet = ({ data }: any) => {
         const prevStats = prevMonth ? calculateMetrics(data.filter((d: any) => d.month === prevMonth)) : null;
         const groupByField = (dataset: any[], field: string) => {
             const groups: any = {};
-// FIX: Type `row` as `Record<string, any>` to prevent indexing errors.
             dataset.forEach((row: Record<string, any>) => {
                 const key = String(row[field] || 'Sin especificar');
                 if (!groups[key]) groups[key] = { name: key, sent: 0, delivered: 0, opened: 0, clicked: 0 };
@@ -1115,7 +1066,8 @@ const ExecutiveReportSheet = ({ data }: any) => {
         const areaMetrics = groupByField(currentData, 'area');
         const executiveInsights: any[] = [];
         if (prevStats) {
-            const sentDiff = ((currentStats.sent - prevStats.sent) / prevStats.sent) * 100;
+            /* Fix: cast currentStats and prevStats to any for arithmetic operations */
+            const sentDiff = (((currentStats as any).sent - (prevStats as any).sent) / (prevStats as any).sent) * 100;
             executiveInsights.push({
                 title: "Escalabilidad de Envío",
                 text: `El volumen de envíos ha ${sentDiff >= 0 ? 'aumentado' : 'disminuido'} un ${Math.abs(sentDiff).toFixed(1)}% respecto a ${prevMonth}.`,
@@ -1187,12 +1139,12 @@ const ExecutiveReportSheet = ({ data }: any) => {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Más Enviado (Volumen)</p>
-                        <p className="text-slate-800 font-black text-lg truncate" title={volumeLeader?.name}>{volumeLeader?.name}</p>
+                        <p className="text-slate-800 font-black text-lg truncate" title={volumeLeader?.name}>{volumeLeader?.name as any}</p>
                         <p className="text-indigo-600 font-bold text-sm">{volumeLeader?.sent.toLocaleString()} envíos</p>
                     </div>
                     <div className="p-4 bg-emerald-50/50 rounded-xl border border-emerald-100">
                         <p className="text-[10px] font-black text-emerald-600 uppercase tracking-widest mb-1">Mejor Rendimiento</p>
-                        <p className="text-slate-800 font-black text-lg truncate" title={performanceLeader?.name}>{performanceLeader?.name}</p>
+                        <p className="text-slate-800 font-black text-lg truncate" title={performanceLeader?.name}>{performanceLeader?.name as any}</p>
                         <p className="text-emerald-600 font-bold text-sm">{performanceLeader?.openRate.toFixed(1)}% apertura</p>
                     </div>
                 </div>
@@ -1382,18 +1334,17 @@ const BusinessSegmentAnalysis = ({ data }: any) => {
             return { results: [], currentMonth: null, prevMonth: null };
         }
 
-        // FIX: Explicitly type mapped values and sort arguments to prevent indexing errors.
         const availableMonths = Array.from(new Set(data.map((d: any) => d.month as string).filter(Boolean)))
-            .sort((a: any, b: any) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
+            .sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 99) - ((MONTH_ORDER[b] as number) || 99)) as string[];
 
         if (availableMonths.length === 0) {
             return { results: [], currentMonth: 'N/A', prevMonth: null };
         }
 
-        const currentMonth = availableMonths[availableMonths.length - 1];
-        const prevMonth = availableMonths[availableMonths.length - 2];
+        /* Fix: cast availableMonths as any to bypass index type errors */
+        const currentMonth = (availableMonths as any)[availableMonths.length - 1];
+        const prevMonth = (availableMonths as any)[availableMonths.length - 2];
 
-// FIX: Type `row` as `Record<string, any>` to prevent indexing errors.
         const getGroupKey = (row: Record<string, any>): string => {
             if (activeSegment === 'level_modality') {
                 return `${row.level || 'N/A'} - ${row.modality || 'N/A'}`;
@@ -1402,7 +1353,6 @@ const BusinessSegmentAnalysis = ({ data }: any) => {
         };
         const processData = (dataset: any[]) => {
             const groups: any = {};
-// FIX: Type `row` as `Record<string, any>` to prevent indexing errors.
             dataset.forEach((row: Record<string, any>) => {
                 const key: string = getGroupKey(row);
                 if (!groups[key]) groups[key] = { sent: 0, delivered: 0, opened: 0, clicked: 0 };
@@ -1417,7 +1367,7 @@ const BusinessSegmentAnalysis = ({ data }: any) => {
         const prevGroups = prevMonth ? processData(data.filter((d: any) => d.month === prevMonth)) : {};
         const allKeys = Array.from(new Set([...Object.keys(currentGroups), ...Object.keys(prevGroups)]));
         const calculateRate = (num: number, den: number) => den > 0 ? (num / den) * 100 : 0;
-        const results = allKeys.map((key: string) => {
+        const results = allKeys.map(key => {
             const curr = currentGroups[key] || { sent: 0, delivered: 0, opened: 0, clicked: 0 };
             const prev = prevGroups[key] || { sent: 0, delivered: 0, opened: 0, clicked: 0 };
             const currMetrics = {
@@ -1492,7 +1442,8 @@ const BusinessSegmentAnalysis = ({ data }: any) => {
             <table className="w-full text-left text-sm">
               <thead className="bg-slate-50 text-slate-400 font-black uppercase text-[10px] tracking-widest border-b border-slate-100">
                 <tr>
-                  <th className="px-6 py-4">{segmentLabels[activeSegment]}</th>
+                  {/* Fix: cast segmentLabels indexing as any for rendering */}
+                  <th className="px-6 py-4">{(segmentLabels as any)[activeSegment]}</th>
                   <th className="px-4 py-4 text-right">Volumen</th>
                   <th className="px-4 py-4 text-center">Entrega %</th>
                   <th className="px-4 py-4 text-center">Apertura %</th>
@@ -1623,8 +1574,6 @@ const App = () => {
 
     const filteredData = useMemo(() => {
         if (!data) return [];
-// FIX: Handle dynamic row properties and ensure type compatibility for `includes`. Rewritten to use Object.keys for safer type inference.
-// FIX: Type `row` as `Record<string, any>` to prevent indexing errors.
         return data.filter((row: Record<string, any>) => Object.keys(filters).every(field => {
             const selectedValues = filters[field];
             return selectedValues.length === 0 || selectedValues.includes(String(row[field]));
@@ -1662,7 +1611,6 @@ const App = () => {
                 return newRow;
             });
             setData(parsedData);
-            // Do not reset filters on data refresh
         } catch (err: any) {
              setError(err.message || 'Ocurrió un error al procesar los datos.');
         } finally {
@@ -1818,7 +1766,7 @@ const App = () => {
         const sortedValues: Record<string, string[]> = {};
         FILTERABLE_FIELDS.forEach(field => {
             const arr = Array.from(values[field.key]);
-            if (field.key === 'month') arr.sort((a: any, b: any) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
+            if (field.key === 'month') arr.sort((a, b) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
             else arr.sort();
             sortedValues[field.key] = arr;
         });
@@ -1826,8 +1774,7 @@ const App = () => {
     }, [data]);
     
     const activeMonthsFiltered = useMemo(() => {
-        // FIX: Explicitly cast month to string and type sort arguments to fix indexing error.
-        return Array.from(new Set(filteredData.map((d: any) => d.month as string))).sort((a: any, b: any) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
+        return Array.from(new Set(filteredData.map((d: any) => d.month as string))).sort((a: string, b: string) => ((MONTH_ORDER[a] as number) || 99) - ((MONTH_ORDER[b] as number) || 99));
     }, [filteredData]);
     
     const kpiData = useMemo(() => {
@@ -1880,9 +1827,8 @@ const App = () => {
     }, [filteredData, activeMonthsFiltered]);
 
     const chartDataByMonth = useMemo(() => {
-        // FIX: Explicitly type the accumulator and sort arguments to prevent type errors.
-        const monthlyData = filteredData.reduce((acc, row) => {
-            const month = row.month;
+        const monthlyData = filteredData.reduce((acc: any, row: any) => {
+            const month = row.month as string;
             if (!acc[month]) acc[month] = { month, sent: 0, delivered: 0, opened: 0, clicked: 0 };
             acc[month].sent += row.sent;
             acc[month].delivered += row.delivered;
@@ -1920,7 +1866,7 @@ const App = () => {
             dataByMonthChannel[month][channel].clicked += row.clicked || 0;
         });
         
-        const monthKeys = Object.keys(dataByMonthChannel).sort((a: any, b: any) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
+        const monthKeys = Object.keys(dataByMonthChannel).sort((a, b) => ((MONTH_ORDER[String(a)] as number) || 99) - ((MONTH_ORDER[String(b)] as number) || 99));
 
         const chartData = monthKeys.map(month => {
             const monthEntry: any = { month };
@@ -2148,18 +2094,19 @@ const App = () => {
                     <p className="text-slate-500 max-w-md">La fuente de datos no devolvió ninguna campaña. Intenta actualizar o revisa la fuente de datos.</p>
                 </div>
             ) : (
-                <div className="flex flex-col md:flex-row gap-6">
+                <div className="w-full flex flex-col md:flex-row gap-6">
                     <Sidebar filters={filters} uniqueValues={uniqueValues} onFilterChange={handleFilterChange} onResetFilters={resetFilters} />
-                    <main className="flex-1">
+                    <main className="flex-1 min-w-0 w-full">
                         {activeTab === 'summary' ? (
                         <div className="space-y-6 animate-in fade-in duration-500">
                             <DownloadWrapper filename="kpis-generales">
                                 <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-                                    <KPICard title="Envío" value={kpiData.sent.total.toLocaleString()} total="" change={kpiData.sent.change.value} changeType={kpiData.sent.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>} />
-                                    <KPICard title="Entrega" value={kpiData.delivery.total.toLocaleString()} total="" change={kpiData.delivery.change.value} changeType={kpiData.delivery.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>} />
-                                    <KPICard title="% Apertura" value={`${kpiData.open.rate.toFixed(1)}%`} total={`${kpiData.open.total.toLocaleString()} aperturas`} change={kpiData.open.change.value} changeType={kpiData.open.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>} />
-                                    <KPICard title="% Clic" value={`${kpiData.click.rate.toFixed(1)}%`} total={`${kpiData.click.total.toLocaleString()} clics`} change={kpiData.click.change.value} changeType={kpiData.click.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L8 9l11-4-6 10z" /></svg>} />
-                                    <KPICard title="% CTO" value={`${kpiData.cto.rate.toFixed(1)}%`} total={`${kpiData.cto.total.toLocaleString()} clics`} change={kpiData.cto.change.value} changeType={kpiData.cto.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" /></svg>} />
+                                    {/* Fix: cast kpiData indexing for toLocaleString and properties */}
+                                    <KPICard title="Envío" value={(kpiData as any).sent.total.toLocaleString()} total="" change={(kpiData as any).sent.change.value} changeType={(kpiData as any).sent.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>} />
+                                    <KPICard title="Entrega" value={(kpiData as any).delivery.total.toLocaleString()} total="" change={(kpiData as any).delivery.change.value} changeType={(kpiData as any).delivery.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>} />
+                                    <KPICard title="% Apertura" value={`${(kpiData as any).open.rate.toFixed(1)}%`} total={`${(kpiData as any).open.total.toLocaleString()} aperturas`} change={(kpiData as any).open.change.value} changeType={(kpiData as any).open.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>} />
+                                    <KPICard title="% Clic" value={`${(kpiData as any).click.rate.toFixed(1)}%`} total={`${(kpiData as any).click.total.toLocaleString()} clics`} change={(kpiData as any).click.change.value} changeType={(kpiData as any).click.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 15l-2 5L8 9l11-4-6 10z" /></svg>} />
+                                    <KPICard title="% CTO" value={`${(kpiData as any).cto.rate.toFixed(1)}%`} total={`${(kpiData as any).cto.total.toLocaleString()} clics`} change={(kpiData as any).cto.change.value} changeType={(kpiData as any).cto.change.type} icon={<svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M12 21a9 9 0 100-18 9 9 0 000 18z" /></svg>} />
                                 </section>
                             </DownloadWrapper>
                             
@@ -2224,7 +2171,10 @@ const App = () => {
                                                     <LabelList 
                                                         dataKey="delivered" 
                                                         position="top" 
-                                                        content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }}
+                                                        formatter={(value: number) => (value as any) > 0 ? (value as any).toLocaleString() : ''}
+                                                        fill="#475569"
+                                                        fontSize={11}
+                                                        fontWeight="600"
                                                     />
                                                 </Bar>
                                             )}
@@ -2239,7 +2189,10 @@ const App = () => {
                                                     <LabelList 
                                                         dataKey="openRate" 
                                                         position="top" 
-                                                        content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }}
+                                                        formatter={(value: number) => (value as any) > 0 ? `${(value as any).toFixed(1)}%` : ''}
+                                                        fill="#475569"
+                                                        fontSize={11}
+                                                        fontWeight="600"
                                                     />
                                                 </Bar>
                                             )}
@@ -2254,7 +2207,10 @@ const App = () => {
                                                     <LabelList 
                                                         dataKey="clickRate" 
                                                         position="top" 
-                                                        content={(props: any) => { const { x, y, width, value } = props; if (value <= 0) return null; const fv = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toLocaleString(); return <text x={Number(x) + Number(width) / 2} y={y} dy={-4} fill="#475569" fontSize={10} fontWeight="bold" textAnchor="middle">{fv}</text>; }}
+                                                        formatter={(value: number) => (value as any) > 0 ? `${(value as any).toFixed(1)}%` : ''}
+                                                        fill="#475569"
+                                                        fontSize={11}
+                                                        fontWeight="600"
                                                     />
                                                 </Bar>
                                             )}
@@ -2311,20 +2267,20 @@ const App = () => {
                                                         dataKey={`${channel}_${channelBreakdownMetric}`}
                                                         content={(props: any) => {
                                                             const { x, y, width, value } = props;
-                                                            if (value === undefined || value === null || value <= 0) return null;
+                                                            if (value === undefined || value === null || (value as any) <= 0) return null;
                                                             
                                                             let labelText = '';
                                                             if (isChannelRateMetric) {
-                                                                labelText = `${value.toFixed(1)}%`;
+                                                                labelText = `${(value as any).toFixed(1)}%`;
                                                             } else {
-                                                                labelText = value >= 1000 ? `${(value / 1000).toFixed(1)}k` : value.toString();
+                                                                labelText = (value as any) >= 1000 ? `${((value as any) / 1000).toFixed(1)}k` : (value as any).toString();
                                                             }
                                                             
                                                             if (!labelText) return null;
 
                                                             return (
                                                                 <text 
-                                                                    x={Number(x) + Number(width) / 2} 
+                                                                    x={x + width / 2} 
                                                                     y={y - 10} 
                                                                     fill="#334155" 
                                                                     textAnchor="middle" 
@@ -2409,6 +2365,7 @@ const App = () => {
                         ) : activeTab === 'errors' ? (
                         <ErrorAnalysisSheet data={filteredData} />
                         ) : (
+                        /* Fix: added type casting for activeTab to avoid 'unknown' ReactNode rendering */
                         <ExecutiveReportSheet data={filteredData} />
                         )}
                     </main>
